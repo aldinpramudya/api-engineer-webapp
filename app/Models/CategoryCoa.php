@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CategoryCoa extends Model
 {
-    protected $table = 'category_coa';
+    protected $table = 'categories_coa';
+    public $timestamps = false;
 
     protected $fillable = [
-        'name'
+        'name_category'
     ];
 
     public function masterCoa(): HasMany{
