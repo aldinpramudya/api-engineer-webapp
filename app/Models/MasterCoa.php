@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class MasterCoa extends Model
 {
     protected $table = "masters_coa";
+    public $timestamps = false;
 
     protected $fillable = [
         "code",

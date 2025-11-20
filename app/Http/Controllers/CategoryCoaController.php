@@ -61,7 +61,7 @@ class CategoryCoaController extends Controller
     {
         $categoryCoaChanges = CategoryCoa::find($id);
         if (!$categoryCoaChanges) {
-            return response()->json(['message' => 'Category not found For Editing'], 404);
+            return response()->json(['message' => 'Category not found'], 404);
         }
         $request->validate([
             'name_category' => 'required|string|max:255',
