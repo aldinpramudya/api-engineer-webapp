@@ -17,8 +17,8 @@ return new class extends Migration
             $table->timestamp("date");
             $table->foreign("masters_coa_id")->references("id")->on("masters_coa")->onDelete("cascade");
             $table->string("description");
-            $table->decimal("debit");
-            $table->decimal("credit");
+            $table->decimal("debit", 15, 2)->default(0.00);
+            $table->decimal("credit", 15, 2)->default(0.00);
         });
     }
 

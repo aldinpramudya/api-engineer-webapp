@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\MasterCoa\StoreMasterCoa;
+use App\Http\Requests\MasterCoa\StoreMasterCoaRequest;
 use App\Models\MasterCoa;
 use Illuminate\Http\Request;
 
@@ -24,7 +24,7 @@ class MasterCoaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreMasterCoa $request)
+    public function store(StoreMasterCoaRequest $request)
     {
         $masterCoa = MasterCoa::create($request->validated());
         return response()->json([

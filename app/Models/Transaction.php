@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Transaction extends Model
 {
     protected $table = "transactions";
+    public $timestamps = false;
 
     protected $fillable = [
         "date",
