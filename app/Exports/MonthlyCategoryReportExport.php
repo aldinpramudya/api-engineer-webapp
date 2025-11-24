@@ -4,13 +4,14 @@ namespace App\Exports;
 
 use App\Models\CategoryCoa;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
-class MonthlyCategoryReportExport implements FromCollection, WithHeadings
+class MonthlyCategoryReportExport implements FromCollection, WithHeadings, WithColumnWidths
 {
     /**
-    * @return \Illuminate\Support\Collection
-    */
+     * @return \Illuminate\Support\Collection
+     */
 
     protected $month;
     protected $year;
@@ -21,12 +22,24 @@ class MonthlyCategoryReportExport implements FromCollection, WithHeadings
         $this->year  = $year;
     }
 
-    public function headings(): array {
+    public function headings(): array
+    {
         return [
             'Category ID',
             'Category Name',
             'Total Debit',
             'Total Credit'
+        ];
+    }
+
+    // Ukuran kolom
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 10, 
+            'B' => 20, 
+            'C' => 20, 
+            'D' => 20, 
         ];
     }
 
