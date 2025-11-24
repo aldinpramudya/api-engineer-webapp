@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
+use App\Models\CategoryCoa;
 use App\Models\Transaction;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class TransactionController extends Controller
 {
@@ -35,11 +37,11 @@ class TransactionController extends Controller
             "debit" => $request->debit,
             "credit" => $request->credit,
         ]);
-        
+
         return response()->json([
             "message" => "New Data Transaction Added",
             "data" => $newTransaction,
-        ],201);
+        ], 201);
     }
 
     /**
@@ -66,7 +68,7 @@ class TransactionController extends Controller
     public function update(UpdateTransactionRequest $request, string $id)
     {
         $updateTransaction = Transaction::with("masterCoa")->find($id);
-        if(!$updateTransaction){
+        if (!$updateTransaction) {
             return response()->json([
                 "message" => "Data Transaction Not Found",
             ], 404);
@@ -94,6 +96,65 @@ class TransactionController extends Controller
         return response()->json([
             "message" => "Data Transaction Successfully Deleted",
             "data" => $transaction,
+        ]);
+    }
+
+    // get Transaction By Month
+    public function getTransactionsByMonth(Request $request)
+    {
+        $month = $request->month;
+        $year = $request->year;
+
+        $transaction = Transaction::with('masterCoa')
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->get();
+
+        return response()->json([
+            'message' => 'Montly Transaction Fetched',
+            'data' => $transaction
+        ]);
+    }
+
+    // Get total debit and credit
+    public function getTotalProfitLoss()
+    {
+        $totalCredit = Transaction::sum('credit');
+        $totalDebit = Transaction::sum('debit');
+        $netIncome = $totalCredit - $totalDebit;
+
+        return response()->json([
+            'message' => 'Total Net Income',
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
+            'net_income' => $netIncome,
+        ]);
+    }
+
+    public function getMonthlyTotal(Request $request)
+    {
+        $month = $request->month;
+        $year = $request->year;
+
+        $categories = CategoryCoa::with(['masterCoa.transaction'])->get()
+            ->map(function ($category) use ($month, $year) {
+                $transaction = $category->masterCoa->flatMap(function ($coa) use ($month, $year) {
+                    return $coa->transaction->whereBetween('date', [
+                        "$year-$month-01",
+                        "$year-$month-31",
+                    ]);
+                });
+
+                return [
+                    'category_id'   => $category->id,
+                    'category_name' => $category->name_category,
+                    'total_debit'   => $transaction->sum('debit'),
+                    'total_credit'  => $transaction->sum('credit'),
+                ];
+            });
+        return response()->json([
+            'message' => "Monthly Total",
+            'data' => $categories,
         ]);
     }
 }

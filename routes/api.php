@@ -14,4 +14,7 @@ Route::apiResource('categories-coa', CategoryCoaController::class);
 Route::apiResource('masters-coa', MasterCoaController::class);
 Route::apiResource("transactions", TransactionController::class);
 
+// Get Monthly Data
+Route::get('get-laporan-profit-loss', [TransactionController::class, 'getMonthlyTotal']);
+
 

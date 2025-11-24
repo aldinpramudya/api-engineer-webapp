@@ -19,6 +19,6 @@ class Transaction extends Model
     ];
 
     public function masterCoa(): BelongsTo{
-        return $this->belongsTo(MasterCoa::class);
+        return $this->belongsTo(MasterCoa::class, "masters_coa_id", 'id');
     }
 }
