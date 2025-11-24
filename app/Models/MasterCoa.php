@@ -18,12 +18,10 @@ class MasterCoa extends Model
     ];
 
     public function categoryCoa(): BelongsTo{
-        return $this->belongsTo(CategoryCoa::class);
+        return $this->belongsTo(CategoryCoa::class, 'category_coa_id', 'id');
     }
 
-    public function transaction(): HasMany{
-        return $this->hasMany(Transaction::class);
+    public function transactions(): HasMany{
+        return $this->hasMany(Transaction::class, 'masters_coa_id');
     }
-
-
 }

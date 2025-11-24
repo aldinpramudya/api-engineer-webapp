@@ -15,6 +15,6 @@ class CategoryCoa extends Model
     ];
 
     public function masterCoa(): HasMany{
-        return $this->hasMany(MasterCoa::class);
+        return $this->hasMany(MasterCoa::class, 'category_coa_id');
     }
 }

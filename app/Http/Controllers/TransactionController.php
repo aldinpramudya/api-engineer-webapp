@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\MonthlyCategoryReportExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
@@ -9,6 +10,7 @@ use App\Models\CategoryCoa;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TransactionController extends Controller
 {
@@ -121,7 +123,7 @@ class TransactionController extends Controller
     {
         $totalCredit = Transaction::sum('credit');
         $totalDebit = Transaction::sum('debit');
-        $netIncome = $totalCredit - $totalDebit;
+        $netIncome = $totalDebit - $totalCredit;
 
         return response()->json([
             'message' => 'Total Net Income',
@@ -134,27 +136,41 @@ class TransactionController extends Controller
     public function getMonthlyTotal(Request $request)
     {
         $month = $request->month;
-        $year = $request->year;
+        $year  = $request->year;
 
-        $categories = CategoryCoa::with(['masterCoa.transaction'])->get()
-            ->map(function ($category) use ($month, $year) {
-                $transaction = $category->masterCoa->flatMap(function ($coa) use ($month, $year) {
-                    return $coa->transaction->whereBetween('date', [
-                        "$year-$month-01",
-                        "$year-$month-31",
-                    ]);
-                });
+        $start = "$year-$month-01";
+        $end   = date("Y-m-t", strtotime($start)); // Use last day of month instead of 31
 
-                return [
-                    'category_id'   => $category->id,
-                    'category_name' => $category->name_category,
-                    'total_debit'   => $transaction->sum('debit'),
-                    'total_credit'  => $transaction->sum('credit'),
-                ];
-            });
+        $categories = CategoryCoa::get()->map(function ($category) use ($start, $end) {
+
+            $total = Transaction::whereHas('masterCoa', function ($q) use ($category) {
+                $q->where('category_coa_id', $category->id);
+            })
+                ->whereBetween('date', [$start, $end])
+                ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
+                ->first();
+
+            return [
+                'category_id'   => $category->id,
+                'category_name' => $category->name_category,
+                'total_debit'   => $total->total_debit ?? 0,
+                'total_credit'  => $total->total_credit ?? 0,
+            ];
+        });
+
         return response()->json([
             'message' => "Monthly Total",
             'data' => $categories,
         ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+
+        $month = $request->month;
+        $year  = $request->year;
+        $filename = "Monthly_Report_{$year}_{$month}.xlsx";
+
+        return Excel::download(new MonthlyCategoryReportExport($month, $year), $filename);
     }
 }

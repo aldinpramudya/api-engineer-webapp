@@ -16,5 +16,7 @@ Route::apiResource("transactions", TransactionController::class);
 
 // Get Monthly Data
 Route::get('get-laporan-profit-loss', [TransactionController::class, 'getMonthlyTotal']);
+// Excel Export Route
+Route::get('excel-report-export', [TransactionController::class, 'exportExcel']);
 
-
+Route::get('get-total-profit-loss', [TransactionController::class, 'getTotalProfitLoss']);
