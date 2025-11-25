@@ -139,7 +139,7 @@ class TransactionController extends Controller
         $year  = $request->year;
 
         $start = "$year-$month-01";
-        $end   = date("Y-m-t", strtotime($start)); // Use last day of month instead of 31
+        $end   = date("Y-m-t", strtotime($start));
 
         $categories = CategoryCoa::get()->map(function ($category) use ($start, $end) {
 
