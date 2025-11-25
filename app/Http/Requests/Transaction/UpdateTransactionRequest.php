@@ -27,8 +27,7 @@ class UpdateTransactionRequest extends FormRequest
             "masters_coa_id" => "sometimes|exists:masters_coa,id",
             "date" => "sometimes",
             "description" => "sometimes|string",
-            "debit" => "sometimes|numeric",
-            "credit" => "sometimes|numeric"
+            "amount" => "sometimes|numeric"
         ];
     }
 

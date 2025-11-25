@@ -86,13 +86,43 @@ class TransactionController extends Controller
     public function update(UpdateTransactionRequest $request, string $id)
     {
         $updateTransaction = Transaction::with("masterCoa")->find($id);
+        $transactionDate = $request->date ? Carbon::parse($request->date) : Carbon::now();
+        
+        // data category
+        $masterCoa = MasterCoa::with('categoryCoa')->find($request->masters_coa_id);
+
+        if (!$masterCoa || !$masterCoa->categoryCoa) {
+            return response()->json([
+                "message" => "Master COA atau Category tidak ditemukan"
+            ], 404);
+        }
+
+        // Mengambil Data Category
+        $typeCategory = $masterCoa->categoryCoa->type_category;
+        $debit = 0;
+        $credit = 0;
+
+        if ($typeCategory === 'Income') {
+            $credit = $request->amount;
+            $debit = 0;
+        } elseif ($typeCategory === 'Expenses') {
+            $debit = $request->amount;
+            $credit = 0;
+        }
+
+        $updateTransaction->update([
+            "masters_coa_id" => $request->masters_coa_id,
+            "date" => $transactionDate,
+            "description" => $request->description,
+            "debit" => $debit,
+            "credit" => $credit,
+        ]);
+
         if (!$updateTransaction) {
             return response()->json([
                 "message" => "Data Transaction Not Found",
             ], 404);
         }
-
-        $updateTransaction->update($request->validated());
         return response()->json([
             "message" => "Data Transaction Update",
             "data" => $updateTransaction,
@@ -174,9 +204,17 @@ class TransactionController extends Controller
             ];
         });
 
+        // Mengghitung total keseluruhan
+        $grandTotalDebit = $categories->sum('total_debit');
+        $grandTotalCredit = $categories->sum('total_credit');
+        $netIncome = $grandTotalCredit - $grandTotalDebit;
+
         return response()->json([
             'message' => "Monthly Total",
             'data' => $categories,
+            'total_all_debit' => $grandTotalDebit,
+            'total_all_credit' => $grandTotalCredit,
+            'net_income' => $netIncome,
         ]);
     }
 
@@ -185,8 +223,17 @@ class TransactionController extends Controller
 
         $month = $request->month;
         $year  = $request->year;
-        $filename = "Monthly_Report_{$year}_{$month}.xlsx";
+        $data = $this->getMonthlyTotal($request)->getData();
 
-        return Excel::download(new MonthlyCategoryReportExport($month, $year), $filename);
+        return Excel::download(
+            new MonthlyCategoryReportExport(
+                collect($data->data)->filter(fn($x) => $x->total_credit > 0)->values(),
+                collect($data->data)->filter(fn($x) => $x->total_debit > 0)->values(),
+                $data->total_all_debit,
+                $data->total_all_credit,
+                $data->net_income
+            ),
+            "profit-loss-{$month}-{$year}.xlsx"
+        );
     }
 }

@@ -2,68 +2,108 @@
 
 namespace App\Exports;
 
-use App\Models\CategoryCoa;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MonthlyCategoryReportExport implements FromCollection, WithHeadings, WithColumnWidths
+class MonthlyCategoryReportExport implements FromArray, WithStyles, WithTitle
 {
     /**
      * @return \Illuminate\Support\Collection
      */
 
-    protected $month;
-    protected $year;
+    protected $income;
+    protected $expenses;
+    protected $totalDebit;
+    protected $totalCredit;
+    protected $netIncome;
 
-    public function __construct($month, $year)
+
+    public function __construct($income, $expenses, $totalDebit, $totalCredit, $netIncome)
     {
-        $this->month = $month;
-        $this->year  = $year;
+        $this->income      = $income;
+        $this->expenses    = $expenses;
+        $this->totalDebit  = $totalDebit;
+        $this->totalCredit = $totalCredit;
+        $this->netIncome   = $netIncome;
     }
 
-    public function headings(): array
+    public function array(): array
     {
-        return [
-            'Category ID',
-            'Category Name',
-            'Total Debit',
-            'Total Credit'
-        ];
+        $rows = [];
+
+        // Header
+        $rows[] = ["Category", "Amount"];
+
+        // INCOME TITLE
+        $rows[] = ["INCOME", ""];
+
+        // INCOME ROWS
+        foreach ($this->income as $item) {
+            $rows[] = [
+                $item->category_name,
+                number_format($item->total_credit - $item->total_debit)
+            ];
+        }
+
+        // TOTAL INCOME
+        $rows[] = ["Total Income", number_format($this->totalCredit)];
+
+        // EXPENSES TITLE
+        $rows[] = ["EXPENSES", ""];
+
+        // EXPENSE ROWS
+        foreach ($this->expenses as $item) {
+            $rows[] = [
+                $item->category_name,
+                "-" . number_format($item->total_debit - $item->total_credit)
+            ];
+        }
+
+        // TOTAL EXPENSES
+        $rows[] = ["Total Expenses", "-" . number_format($this->totalDebit)];
+
+        // NET INCOME ROW
+        $rows[] = ["Net Income", number_format($this->netIncome)];
+
+        return $rows;
     }
 
-    // Ukuran kolom
-    public function columnWidths(): array
+    public function styles(Worksheet $sheet)
     {
-        return [
-            'A' => 10, 
-            'B' => 20, 
-            'C' => 20, 
-            'D' => 20, 
-        ];
+        $highestRow = $sheet->getHighestRow();
+
+        // HEADER STYLE
+        $sheet->getStyle("A1:B1")->getFont()->setBold(true);
+
+        // AUTO WIDTH
+        foreach (range('A', 'B') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // BORDER ALL CELLS
+        $sheet->getStyle("A1:B{$highestRow}")
+            ->getBorders()->getAllBorders()->setBorderStyle('thin');
+
+        // INCOME TITLE (ROW 2)
+        $sheet->getStyle("A2:B2")->getFont()->setBold(true);
+        $sheet->getStyle("A2:B2")->getFill()->setFillType('solid')
+            ->getStartColor()->setARGB('90EE90'); // Green
+
+        // EXPENSES TITLE ROW
+        $expensesTitleRow = count($this->income) + 4; 
+        $sheet->getStyle("A{$expensesTitleRow}:B{$expensesTitleRow}")
+            ->getFont()->setBold(true);
+        $sheet->getStyle("A{$expensesTitleRow}:B{$expensesTitleRow}")
+            ->getFill()->setFillType('solid')
+            ->getStartColor()->setARGB('FF7F7F'); // Red
+        
+        return [];
     }
 
-    public function collection()
+    public function title(): string
     {
-        return CategoryCoa::with(['masterCoa.transactions'])
-            ->get()
-            ->map(function ($category) {
-
-                $transactions = $category->masterCoa
-                    ->flatMap(function ($coa) {
-                        return $coa->transactions
-                            ->whereBetween('date', [
-                                "{$this->year}-{$this->month}-01",
-                                "{$this->year}-{$this->month}-31",
-                            ]);
-                    });
-
-                return [
-                    'category_id'   => $category->id,
-                    'category_name' => $category->name_category,
-                    'total_debit'   => $transactions->sum('debit'),
-                    'total_credit'  => $transactions->sum('credit'),
-                ];
-            });
+        return "Profit & Loss Report";
     }
 }
