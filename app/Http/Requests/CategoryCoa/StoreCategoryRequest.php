@@ -24,7 +24,8 @@ class StoreCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            "name_category" => "required|string"
+            "name_category" => "required|string",
+            "type_category" => "required|in:Expenses,Income"
         ];
     }
 

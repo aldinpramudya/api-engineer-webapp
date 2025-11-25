@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
 use App\Models\CategoryCoa;
+use App\Models\MasterCoa;
 use App\Models\Transaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::with("masterCoa")->get();
+        $transactions = Transaction::with(["masterCoa.categoryCoa"])->get();
         return response()->json([
             "message" => "Data Transactions Shown",
             "data" => $transactions,
@@ -32,12 +33,27 @@ class TransactionController extends Controller
     public function store(StoreTransactionRequest $request)
     {
         $transactionDate = Carbon::now();
+
+        $masterCoa = MasterCoa::with('categoryCoa')->find($request->masters_coa_id);
+        $typeCategory = $masterCoa->categoryCoa->type_category;
+
+        $debit = 0;
+        $credit = 0;
+
+        if ($typeCategory === 'Income') {
+            $credit = $request->amount;
+            $debit = 0;
+        } elseif ($typeCategory === 'Expenses') {
+            $debit = $request->amount;
+            $credit = 0;
+        }
+
         $newTransaction = Transaction::create([
             "masters_coa_id" => $request->masters_coa_id,
             "date" => $transactionDate,
             "description" => $request->description,
-            "debit" => $request->debit,
-            "credit" => $request->credit,
+            "debit" => $debit,
+            "credit" => $credit,
         ]);
 
         return response()->json([

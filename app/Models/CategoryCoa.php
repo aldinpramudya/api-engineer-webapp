@@ -11,6 +11,7 @@ class CategoryCoa extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'type_category',
         'name_category'
     ];
 

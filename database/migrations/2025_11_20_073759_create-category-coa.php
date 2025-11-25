@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create("categories_coa", function (Blueprint $table) {
             $table->id();
+            $table->enum("type_category", ["Expenses", "Income"]);
             $table->string("name_category");
         });
     }

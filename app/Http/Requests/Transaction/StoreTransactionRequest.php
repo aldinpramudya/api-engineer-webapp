@@ -26,8 +26,7 @@ class StoreTransactionRequest extends FormRequest
         return [
             "masters_coa_id" => "required|exists:masters_coa,id",
             "description" => "required|string",
-            "debit" => "numeric",
-            "credit" => "numeric",
+            "amount" => "required|numeric|min:0",
         ];
     }
 
