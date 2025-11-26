@@ -2,108 +2,70 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use App\Models\CategoryCoa;
+use App\Models\Transaction;
+use Illuminate\Contracts\View\View;
+use Maatwebsite\Excel\Concerns\FromView;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 
-class MonthlyCategoryReportExport implements FromArray, WithStyles, WithTitle
+class MonthlyCategoryReportExport implements FromView, WithColumnWidths
 {
     /**
      * @return \Illuminate\Support\Collection
      */
 
-    protected $income;
-    protected $expenses;
-    protected $totalDebit;
-    protected $totalCredit;
-    protected $netIncome;
+    protected $month;
+    protected $year;
 
-
-    public function __construct($income, $expenses, $totalDebit, $totalCredit, $netIncome)
+    public function __construct($month, $year)
     {
-        $this->income      = $income;
-        $this->expenses    = $expenses;
-        $this->totalDebit  = $totalDebit;
-        $this->totalCredit = $totalCredit;
-        $this->netIncome   = $netIncome;
+        $this->month = $month;
+        $this->year  = $year;
     }
 
-    public function array(): array
+    public function columnWidths(): array
+{
+    return [
+        'A' => 30, 
+        'B' => 20, 
+        'C' => 20, 
+    ];
+}
+
+
+    public function view(): View
     {
-        $rows = [];
+        $start = "{$this->year}-{$this->month}-01";
+        $end   = date("Y-m-t", strtotime($start));
 
-        // Header
-        $rows[] = ["Category", "Amount"];
+        $categories = CategoryCoa::get()->map(function ($category) use ($start, $end) {
 
-        // INCOME TITLE
-        $rows[] = ["INCOME", ""];
+            $total = Transaction::whereHas('masterCoa', function ($q) use ($category) {
+                $q->where('category_coa_id', $category->id);
+            })
+                ->whereBetween('date', [$start, $end])
+                ->selectRaw('SUM(debit) AS total_debit, SUM(credit) AS total_credit')
+                ->first();
 
-        // INCOME ROWS
-        foreach ($this->income as $item) {
-            $rows[] = [
-                $item->category_name,
-                number_format($item->total_credit - $item->total_debit)
+            return [
+                'category_id'   => $category->id,
+                'category_name' => $category->name_category,
+                'total_debit'   => $total->total_debit ?? 0,
+                'total_credit'  => $total->total_credit ?? 0,
             ];
-        }
+        });
 
-        // TOTAL INCOME
-        $rows[] = ["Total Income", number_format($this->totalCredit)];
+        $grandTotalDebit  = $categories->sum('total_debit');
+        $grandTotalCredit = $categories->sum('total_credit');
+        $netIncome        = $grandTotalCredit - $grandTotalDebit;
 
-        // EXPENSES TITLE
-        $rows[] = ["EXPENSES", ""];
-
-        // EXPENSE ROWS
-        foreach ($this->expenses as $item) {
-            $rows[] = [
-                $item->category_name,
-                "-" . number_format($item->total_debit - $item->total_credit)
-            ];
-        }
-
-        // TOTAL EXPENSES
-        $rows[] = ["Total Expenses", "-" . number_format($this->totalDebit)];
-
-        // NET INCOME ROW
-        $rows[] = ["Net Income", number_format($this->netIncome)];
-
-        return $rows;
-    }
-
-    public function styles(Worksheet $sheet)
-    {
-        $highestRow = $sheet->getHighestRow();
-
-        // HEADER STYLE
-        $sheet->getStyle("A1:B1")->getFont()->setBold(true);
-
-        // AUTO WIDTH
-        foreach (range('A', 'B') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
-        }
-
-        // BORDER ALL CELLS
-        $sheet->getStyle("A1:B{$highestRow}")
-            ->getBorders()->getAllBorders()->setBorderStyle('thin');
-
-        // INCOME TITLE (ROW 2)
-        $sheet->getStyle("A2:B2")->getFont()->setBold(true);
-        $sheet->getStyle("A2:B2")->getFill()->setFillType('solid')
-            ->getStartColor()->setARGB('90EE90'); // Green
-
-        // EXPENSES TITLE ROW
-        $expensesTitleRow = count($this->income) + 4; 
-        $sheet->getStyle("A{$expensesTitleRow}:B{$expensesTitleRow}")
-            ->getFont()->setBold(true);
-        $sheet->getStyle("A{$expensesTitleRow}:B{$expensesTitleRow}")
-            ->getFill()->setFillType('solid')
-            ->getStartColor()->setARGB('FF7F7F'); // Red
-        
-        return [];
-    }
-
-    public function title(): string
-    {
-        return "Profit & Loss Report";
+        return view('exports.monthly_total', [
+            'categories'        => $categories,
+            'grandTotalDebit'   => $grandTotalDebit,
+            'grandTotalCredit'  => $grandTotalCredit,
+            'netIncome'         => $netIncome,
+            'month'             => $this->month,
+            'year'              => $this->year,
+        ]);
     }
 }

@@ -87,7 +87,7 @@ class TransactionController extends Controller
     {
         $updateTransaction = Transaction::with("masterCoa")->find($id);
         $transactionDate = $request->date ? Carbon::parse($request->date) : Carbon::now();
-        
+
         // data category
         $masterCoa = MasterCoa::with('categoryCoa')->find($request->masters_coa_id);
 
@@ -99,6 +99,7 @@ class TransactionController extends Controller
 
         // Mengambil Data Category
         $typeCategory = $masterCoa->categoryCoa->type_category;
+        // Tentukan debit & credit
         $debit = 0;
         $credit = 0;
 
@@ -223,17 +224,10 @@ class TransactionController extends Controller
 
         $month = $request->month;
         $year  = $request->year;
-        $data = $this->getMonthlyTotal($request)->getData();
 
         return Excel::download(
-            new MonthlyCategoryReportExport(
-                collect($data->data)->filter(fn($x) => $x->total_credit > 0)->values(),
-                collect($data->data)->filter(fn($x) => $x->total_debit > 0)->values(),
-                $data->total_all_debit,
-                $data->total_all_credit,
-                $data->net_income
-            ),
-            "profit-loss-{$month}-{$year}.xlsx"
+            new MonthlyCategoryReportExport($month, $year),
+            "Export-Profit-Loss-{$month}-{$year}.xlsx"
         );
     }
 }
