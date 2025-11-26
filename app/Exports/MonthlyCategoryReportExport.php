@@ -24,13 +24,13 @@ class MonthlyCategoryReportExport implements FromView, WithColumnWidths
     }
 
     public function columnWidths(): array
-{
-    return [
-        'A' => 30, 
-        'B' => 20, 
-        'C' => 20, 
-    ];
-}
+    {
+        return [
+            'A' => 30,
+            'B' => 20,
+            'C' => 20,
+        ];
+    }
 
 
     public function view(): View

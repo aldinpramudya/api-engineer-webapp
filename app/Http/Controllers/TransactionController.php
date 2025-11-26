@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\MonthlyCategoryReportExport;
+use App\Exports\YearlyCategoryReportExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Transaction\StoreTransactionRequest;
 use App\Http\Requests\Transaction\UpdateTransactionRequest;
@@ -285,6 +286,7 @@ class TransactionController extends Controller
         ]);
     }
 
+    // Export Excel Montly
     public function exportExcel(Request $request)
     {
 
@@ -294,6 +296,15 @@ class TransactionController extends Controller
         return Excel::download(
             new MonthlyCategoryReportExport($month, $year),
             "Export-Profit-Loss-{$month}-{$year}.xlsx"
+        );
+    }
+
+    // Export Excel Yearly
+    public function exportYearlyExcel(Request $request){
+        $year = $request->year;
+
+        return Excel::download(
+            new YearlyCategoryReportExport($year),"Export-Year-{$year}.xlsx"
         );
     }
 }
